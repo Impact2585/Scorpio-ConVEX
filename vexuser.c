@@ -45,6 +45,7 @@
 #include "ch.h"  		// needs for all ChibiOS programs
 #include "hal.h" 		// hardware abstraction layer header
 #include "vex.h"		// vex library header
+#include "vexctl.h"
 
 // Digi IO configuration
 static  vexDigiCfg  dConfig[kVexDigital_Num] = {
@@ -126,8 +127,22 @@ vexAutonomous( void *arg )
     return (msg_t)0;
 }
 
-#define MotorDriveL     kVexMotor_1
-#define MotorDriveR     kVexMotor_10
+#define TopArm 			kVexMotor_6
+#define BottomArm		kVexMotor_8
+#define ArmSpeedMultiplier		0.7
+
+#define LeftIntakeWheel		kVexMotor_7
+#define RightIntakeWheel	kVexMotor_9
+
+#define LeftIntakeArm		kVexMotor_10
+#define RightIntakeArm		kVexMotor_1
+#define IntakeArmSpeedMultiplier		0.3
+bool_t toggleMultiplier = 0;
+bool_t prevTogglePress = 0;
+
+int8_t getInput(tCtlIndex forward, tCtlIndex back);
+void moveIntakeArms(int speed);
+void spinWheels(int speed);
 
 /*-----------------------------------------------------------------------------*/
 /** @brief      Driver control                                                 */
@@ -138,7 +153,6 @@ vexAutonomous( void *arg )
 msg_t
 vexOperator( void *arg )
 {
-	int16_t		blink = 0;
 
 	(void)arg;
 
@@ -147,26 +161,61 @@ vexOperator( void *arg )
 
 	// Run until asked to terminate
 	while(!chThdShouldTerminate())
-		{
-		// flash led/digi out
-		vexDigitalPinSet( kVexDigital_1, (blink++ >> 3) & 1);
+	{
 
-		// status on LCD of encoder and sonar
-		vexLcdPrintf( VEX_LCD_DISPLAY_2, VEX_LCD_LINE_1, "%4.2fV   %8.1f", vexSpiGetMainBattery() / 1000.0, chTimeNow() / 1000.0 );
-		vexLcdPrintf( VEX_LCD_DISPLAY_2, VEX_LCD_LINE_2, "L %3d R %3d", vexMotorGet( MotorDriveL ), vexMotorGet( MotorDriveR ) );
+		//toggles the speed multiplier
+		if(vexControllerGet(Btn8U) && !prevTogglePress) {
+			toggleMultiplier = !toggleMultiplier;
+		}
+		prevTogglePress = vexControllerGet(Btn8U);
 
-		// Tank drive
-		// left drive
-		vexMotorSet( MotorDriveL, vexControllerGet( Ch3 ) );
+		//intake arm movement
+		moveIntakeArms(getInput(Btn6D, Btn5D) * IntakeArmSpeedMultiplier);
 
-		// right drive
-		vexMotorSet( MotorDriveR, vexControllerGet( Ch2 ) );
+		//arm movement
+		if(!toggleMultiplier) {
+			vexMotorSet(TopArm, ArmSpeedMultiplier * vexControllerGet(Ch3));
+			vexMotorSet(BottomArm, ArmSpeedMultiplier * vexControllerGet(Ch2));
+		} else {
+			vexMotorSet(TopArm, vexControllerGet(Ch3));
+			vexMotorSet(BottomArm, vexControllerGet(Ch2));
+		}
+
+		//controls intake and outake
+		spinWheels(getInput(Btn6U, Btn5U) * 127);
 
 		// Don't hog cpu
 		vexSleep( 25 );
-		}
+	}
 
 	return (msg_t)0;
+}
+
+//spins the intake/outake wheels
+void spinWheels(int speed)
+{
+	vexMotorSet(LeftIntakeWheel, speed);
+	vexMotorSet(RightIntakeWheel, -speed);
+}
+
+//sets the speed of the intake arms
+void moveIntakeArms(int speed)
+{
+	vexMotorSet(LeftIntakeArm, speed);
+	vexMotorSet(RightIntakeArm, -speed);
+}
+
+//returns 1 if the forward digital input is pressed and back isn't and -1 if back digital input is pressed and forward isn't
+int8_t getInput(tCtlIndex forward, tCtlIndex back)
+{
+	if(vexControllerGet(forward) && !vexControllerGet(back)) {
+		return 1;
+	} else if(vexControllerGet(back) && !vexControllerGet(forward)) {
+		return -1;
+	} else {
+		return 0;
+	}
+
 }
 
 
