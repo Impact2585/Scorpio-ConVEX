@@ -131,18 +131,45 @@ vexAutonomous( void *arg )
 #define BottomArm		kVexMotor_8
 #define ArmSpeedMultiplier		0.7
 
-#define LeftIntakeWheel		kVexMotor_7
-#define RightIntakeWheel	kVexMotor_9
+#define Intake		kVexMotor_7
 
-#define LeftIntakeArm		kVexMotor_10
-#define RightIntakeArm		kVexMotor_1
-#define IntakeArmSpeedMultiplier		0.3
+#define LeftIntakeArm		kVexMotor_3
+#define RightIntakeArm		kVexMotor_2
+
+#define Lever	kVexMotor_4
+
+
+#define IntakeArmSpeedMultiplier		1
 bool_t toggleMultiplier = 0;
 bool_t prevTogglePress = 0;
+bool_t lockLever = 0;
+bool_t leverInput = 0;
 
 int8_t getInput(tCtlIndex forward, tCtlIndex back);
 void moveIntakeArms(int speed);
-void spinWheels(int speed);
+
+//Seperate thread that is forked from the operator control thread that controls the lever
+static WORKING_AREA(waLeverTask, 512);
+static msg_t
+LeverTask(void *arg)
+{
+	(void)arg;
+	vexTaskRegister("Lever Task");
+
+	//moves the lever forward for 750 ms then back for 750 ms
+	while(1) {
+		leverInput = getInput(Btn8R, Btn8U);
+		if(leverInput != 0) {
+			vexMotorSet(Lever, leverInput * 127);
+			vexSleep(750);
+			vexMotorSet(Lever, -leverInput * 127);
+			vexSleep(750);
+			vexMotorSet(Lever, 0);
+		}
+		vexSleep(25);
+	}
+	return (msg_t)0;
+}
 
 /*-----------------------------------------------------------------------------*/
 /** @brief      Driver control                                                 */
@@ -158,19 +185,19 @@ vexOperator( void *arg )
 
 	// Must call this
 	vexTaskRegister("operator");
-
+	chThdCreateStatic(waLeverTask, sizeof(waLeverTask), NORMALPRIO - 1, LeverTask, NULL);
 	// Run until asked to terminate
 	while(!chThdShouldTerminate())
 	{
 
 		//toggles the speed multiplier
-		if(vexControllerGet(Btn8U) && !prevTogglePress) {
+		if(vexControllerGet(Btn8L) && !prevTogglePress) {
 			toggleMultiplier = !toggleMultiplier;
 		}
-		prevTogglePress = vexControllerGet(Btn8U);
+		prevTogglePress = vexControllerGet(Btn8L);
 
 		//intake arm movement
-		moveIntakeArms(getInput(Btn6D, Btn5D) * IntakeArmSpeedMultiplier);
+		moveIntakeArms(getInput(Btn6D, Btn5D) * 127 * IntakeArmSpeedMultiplier);
 
 		//arm movement
 		if(!toggleMultiplier) {
@@ -182,7 +209,7 @@ vexOperator( void *arg )
 		}
 
 		//controls intake and outake
-		spinWheels(getInput(Btn6U, Btn5U) * 127);
+		vexMotorSet(Intake, getInput(Btn6U, Btn5U) * 127);
 
 		// Don't hog cpu
 		vexSleep( 25 );
@@ -191,12 +218,6 @@ vexOperator( void *arg )
 	return (msg_t)0;
 }
 
-//spins the intake/outake wheels
-void spinWheels(int speed)
-{
-	vexMotorSet(LeftIntakeWheel, speed);
-	vexMotorSet(RightIntakeWheel, -speed);
-}
 
 //sets the speed of the intake arms
 void moveIntakeArms(int speed)
@@ -217,6 +238,8 @@ int8_t getInput(tCtlIndex forward, tCtlIndex back)
 	}
 
 }
+
+
 
 
 
