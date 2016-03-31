@@ -142,8 +142,7 @@ vexAutonomous( void *arg )
 #define IntakeArmSpeedMultiplier		1
 bool_t toggleMultiplier = 0;
 bool_t prevTogglePress = 0;
-bool_t lockLever = 0;
-bool_t leverInput = 0;
+int8_t leverInput = 0;
 
 int8_t getInput(tCtlIndex forward, tCtlIndex back);
 void moveIntakeArms(int speed);
@@ -159,12 +158,16 @@ LeverTask(void *arg)
 	//moves the lever forward for 750 ms then back for 750 ms
 	while(1) {
 		leverInput = getInput(Btn8R, Btn8U);
-		if(leverInput != 0) {
-			vexMotorSet(Lever, leverInput * 127);
+		if(leverInput == 1) {
+			vexMotorSet(Lever, 127);
 			vexSleep(750);
-			vexMotorSet(Lever, -leverInput * 127);
+			vexMotorSet(Lever, -127);
 			vexSleep(750);
 			vexMotorSet(Lever, 0);
+		} else if (leverInput == -1){
+			vexMotorSet(Lever, -63);
+		} else {
+			vexMotorSet(0);
 		}
 		vexSleep(25);
 	}
