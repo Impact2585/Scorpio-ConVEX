@@ -127,19 +127,19 @@ vexAutonomous( void *arg )
     return (msg_t)0;
 }
 
-#define TopArm 			kVexMotor_6
-#define BottomArm		kVexMotor_8
-#define ArmSpeedMultiplier		0.7
+#define TOP_ARM 			kVexMotor_6
+#define BOTTOM_ARM		kVexMotor_8
+#define ARM_SPEED_MULTIPLIER		0.7
 
-#define Intake		kVexMotor_7
+#define INTAKE		kVexMotor_7
 
-#define LeftIntakeArm		kVexMotor_3
-#define RightIntakeArm		kVexMotor_2
+#define LEFT_INTAKE_ARM		kVexMotor_3
+#define RIGHT_INTAKE_ARM		kVexMotor_2
 
-#define Lever	kVexMotor_4
+#define LEVER	kVexMotor_4
 
 
-#define IntakeArmSpeedMultiplier		1
+#define INTAKE_ARM_SPEED_MULTIPLIER		1
 bool_t toggleMultiplier = 0;
 bool_t prevTogglePress = 0;
 int8_t leverInput = 0;
@@ -159,15 +159,15 @@ LeverTask(void *arg)
 	while(1) {
 		leverInput = getInput(Btn8R, Btn8U);
 		if(leverInput == 1) {
-			vexMotorSet(Lever, 127);
+			vexMotorSet(LEVER, 127);
 			vexSleep(750);
-			vexMotorSet(Lever, -127);
+			vexMotorSet(LEVER, -127);
 			vexSleep(750);
-			vexMotorSet(Lever, 0);
+			vexMotorSet(LEVER, 0);
 		} else if (leverInput == -1){
-			vexMotorSet(Lever, -63);
+			vexMotorSet(LEVER, -63);
 		} else {
-			vexMotorSet(0);
+			vexMotorSet(LEVER, 0);
 		}
 		vexSleep(25);
 	}
@@ -200,19 +200,19 @@ vexOperator( void *arg )
 		prevTogglePress = vexControllerGet(Btn8L);
 
 		//intake arm movement
-		moveIntakeArms(getInput(Btn6D, Btn5D) * 127 * IntakeArmSpeedMultiplier);
+		moveIntakeArms(getInput(Btn6D, Btn5D) * 127 * INTAKE_ARM_SPEED_MULTIPLIER);
 
 		//arm movement
 		if(!toggleMultiplier) {
-			vexMotorSet(TopArm, ArmSpeedMultiplier * vexControllerGet(Ch3));
-			vexMotorSet(BottomArm, ArmSpeedMultiplier * vexControllerGet(Ch2));
+			vexMotorSet(TOP_ARM, ARM_SPEED_MULTIPLIER * vexControllerGet(Ch3));
+			vexMotorSet(BOTTOM_ARM, ARM_SPEED_MULTIPLIER * vexControllerGet(Ch2));
 		} else {
-			vexMotorSet(TopArm, vexControllerGet(Ch3));
-			vexMotorSet(BottomArm, vexControllerGet(Ch2));
+			vexMotorSet(TOP_ARM, vexControllerGet(Ch3));
+			vexMotorSet(BOTTOM_ARM, vexControllerGet(Ch2));
 		}
 
 		//controls intake and outake
-		vexMotorSet(Intake, getInput(Btn6U, Btn5U) * 127);
+		vexMotorSet(INTAKE, getInput(Btn6U, Btn5U) * 127);
 
 		// Don't hog cpu
 		vexSleep( 25 );
@@ -225,8 +225,8 @@ vexOperator( void *arg )
 //sets the speed of the intake arms
 void moveIntakeArms(int speed)
 {
-	vexMotorSet(LeftIntakeArm, speed);
-	vexMotorSet(RightIntakeArm, -speed);
+	vexMotorSet(LEFT_INTAKE_ARM, speed);
+	vexMotorSet(RIGHT_INTAKE_ARM, -speed);
 }
 
 //returns 1 if the forward digital input is pressed and back isn't and -1 if back digital input is pressed and forward isn't
