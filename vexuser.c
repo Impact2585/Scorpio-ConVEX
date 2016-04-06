@@ -145,6 +145,7 @@ bool_t prevTogglePress = 0;
 int8_t leverInput = 0;
 
 int8_t getInput(tCtlIndex forward, tCtlIndex back);
+int8_t getTripleInput(tCtlIndex first, tCtlIndex second, tCtlIndex third);
 void moveIntakeArms(int speed);
 
 //Seperate thread that is forked from the operator control thread that controls the lever
@@ -155,19 +156,27 @@ LeverTask(void *arg)
 	(void)arg;
 	vexTaskRegister("Lever Task");
 
-	//moves the lever forward for 750 ms then back for 750 ms
+	//moves the lever forward for 250 ms then back for 233 ms
 	while(1) {
-		leverInput = getInput(Btn8R, Btn8U);
-		if(leverInput == 1) {
-			vexMotorSet(LEVER, 127);
-			vexSleep(750);
-			vexMotorSet(LEVER, -127);
-			vexSleep(750);
-			vexMotorSet(LEVER, 0);
-		} else if (leverInput == -1){
-			vexMotorSet(LEVER, -63);
-		} else {
-			vexMotorSet(LEVER, 0);
+		leverInput = getTripleInput(Btn8R, Btn8U, Btn8D);
+		switch(leverInput) {
+			case 1:
+				vexMotorSet(LEVER, 127);
+				vexSleep(250);
+				vexMotorSet(LEVER, -127);
+				vexSleep(233);
+				vexMotorSet(LEVER, 0);
+				break;
+			case 2:
+				vexMotorSet(LEVER, 63);
+				break;
+			case 3:
+				vexMotorSet(LEVER, -63);
+				break;
+			default:
+				vexMotorSet(LEVER, 0);
+				break;
+
 		}
 		vexSleep(25);
 	}
@@ -240,6 +249,19 @@ int8_t getInput(tCtlIndex forward, tCtlIndex back)
 		return 0;
 	}
 
+}
+
+//returns 1 if the first button was pressed, two if the second button was pressed, 3 if the third button was pressed, and 0 if nothing or multiple buttons were pressed
+int8_t getTripleInput(tCtlIndex first, tCtlIndex second, tCtlIndex third) {
+	if(vexControllerGet(first) && !vexControllerGet(second) && !vexControllerGet(third)) {
+		return 1;
+	} else if(!vexControllerGet(first) && vexControllerGet(second) && !vexControllerGet(third)) {
+		return 2;
+	} else if (!vexControllerGet(first) && !vexControllerGet(second) && vexControllerGet(third)){
+		return 3;
+	} else {
+		return 0;
+	}
 }
 
 
